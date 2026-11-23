@@ -1,0 +1,3 @@
+# venv는 반드시 --system-site-packages 로 생성 (apt의 picamera2를 쓰기 위해)
+ultralytics
+aiohttp

@@ -1,0 +1,6 @@
+aiohttp
+pymavlink
+# AI 정찰 보고서용 (선택)
+anthropic
+# 시뮬레이션 스냅샷 이미지 생성용 (선택)
+opencv-python

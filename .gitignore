@@ -1,0 +1,34 @@
+# 비밀값
+.env
+*.key
+config.local.*
+
+# 개인 실행 설정 (COM 포트 등)
+ground/launcher_settings.json
+
+# 비행 데이터·녹화 (위치 정보 포함)
+ground/data/
+ground/data_sim/
+ground/replays/
+ground/models/*.pt
+rec/
+*.tlog
+logs/
+
+# 영상·대용량
+*.mp4
+*.MP4
+*.avi
+*.mov
+datasets/
+runs/
+
+# 백업
+*.bak
+*.bak_*
+
+# 파이썬
+__pycache__/
+*.pyc
+venv/
+.venv/

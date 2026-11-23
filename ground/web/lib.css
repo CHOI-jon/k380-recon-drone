@@ -1,0 +1,174 @@
+/* 자료 보관함 */
+.lib-btn { background: #facc15; color: #0f172a; border-radius: 999px; padding: 8px 16px; font-size: 13px; }
+.video-frame canvas.replay-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+.lib-overlay { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.72); z-index: 3000; display: flex; justify-content: center;
+  align-items: flex-start; padding: 40px 16px; overflow-y: auto; }
+.lib-overlay[hidden] { display: none; }
+body.lib-open { overflow: hidden; }
+.lib-panel { width: min(980px, 100%); background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 20px 22px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.5); }
+.lib-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.lib-top h2 { margin: 0; font-size: 20px; }
+.lib-now { margin: 10px 0 14px; color: var(--text-2); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.lib-now button { padding: 5px 12px; font-size: 13px; }
+
+.lib-drop { border: 2px dashed #475569; border-radius: 14px; padding: 18px; display: grid; gap: 6px; text-align: center;
+  background: #0b1220; transition: border-color .15s, background .15s; }
+.lib-drop.over { border-color: var(--accent); background: #0c2233; }
+.lib-drop strong { font-size: 16px; }
+.lib-drop code, .lib-pending code { background: #1e293b; padding: 1px 6px; border-radius: 6px; font-size: 12px; }
+.lib-drop button.link { padding: 0 2px; }
+
+.lib-up, .lib-deps, .lib-pending { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--panel); }
+.lib-up[hidden], .lib-deps[hidden], .lib-pending[hidden] { display: none; }
+.lib-deps { background: #422006; color: #fde68a; display: grid; gap: 8px; }
+.lib-deps button { justify-self: start; }
+.lib-log { margin: 0; max-height: 110px; overflow: auto; font-size: 11px; color: #e2e8f0; background: #0b1220; padding: 6px 8px; border-radius: 8px; white-space: pre-wrap; }
+.lib-pending ul { margin: 6px 0 0; padding-left: 18px; color: var(--text-2); font-size: 13px; }
+
+.lib-list { margin: 14px 0 8px; display: grid; gap: 10px; }
+.lib-item { background: var(--panel); border-radius: 14px; padding: 12px 14px; border: 1px solid transparent; }
+.lib-item.playing { border-color: #facc15; }
+.lib-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lib-name { font-size: 15px; word-break: break-all; }
+.lib-btns { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+.lib-btns button, .lib-btns .btn { padding: 6px 12px; font-size: 13px; }
+.lib-btns .btn { display: inline-block; border-radius: 10px; background: var(--accent); color: #082f49; font-weight: 800; text-decoration: none; }
+.lib-kind { font-size: 12px; font-weight: 800; border-radius: 999px; padding: 2px 10px; background: #334155; color: var(--text); }
+.lib-kind.k-k380 { background: #14532d; color: #bbf7d0; }
+.lib-kind.k-mavic { background: #1e3a8a; color: #bfdbfe; }
+.lib-kind.k-log { background: #581c87; color: #e9d5ff; }
+.lib-kind.k-demo { background: #713f12; color: #fde68a; }
+.lib-sub { margin-top: 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; color: var(--text-2); }
+.lib-sub b { color: var(--text); }
+.lib-st { font-size: 12px; font-weight: 700; color: var(--muted); }
+.lib-st.ok { color: var(--good); }
+.lib-st.err { color: var(--critical); }
+.lib-prog { width: 180px; height: 8px; background: #0b1220; border-radius: 999px; overflow: hidden; }
+.lib-prog div { height: 100%; background: var(--accent); transition: width .4s; }
+.lib-up .lib-prog { width: 100%; margin-bottom: 6px; }
+
+.lib-set { margin-top: 10px; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px 10px; align-items: end;
+  padding: 10px; background: #0b1220; border-radius: 12px; }
+.lib-set label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+.lib-set p { grid-column: 1 / -1; margin: 0; }
+@media (max-width: 640px) { .lib-overlay { padding: 12px 8px; } .lib-btns { margin-left: 0; } }
+.lib-rank { font-size: 13px; font-weight: 900; color: #0f172a; background: #e2e8f0; border-radius: 8px; padding: 1px 8px; min-width: 34px; text-align: center; }
+.lib-kind.k-result { background: #7c2d12; color: #fed7aa; }
+.lib-dates { color: var(--muted); }
+.lib-dates b { color: var(--text-2); font-weight: 700; }
+
+/* 성능 모니터: 라즈베리파이 드론 연결 때만 값 표시 (perf-gate.js) */
+.perf-card { position: relative; }
+.perf-card.perf-gated .perf-status, .perf-card.perf-gated .spark-grid { visibility: hidden; }
+.perf-off { position: absolute; inset: 58px 18px 18px; display: grid; place-content: center; text-align: center; gap: 6px;
+  border: 1px dashed #334155; border-radius: 14px; color: var(--text-2); font-weight: 700; font-size: 15px; line-height: 1.6; padding: 12px; }
+.perf-off span { color: var(--muted); font-weight: 500; font-size: 13px; }
+.perf-off[hidden] { display: none; }
+
+/* 감시구역: 버튼으로 여닫는 지도 위 패널 (zone-ui.js) */
+.map-card .map-layout { position: relative; }
+.map-card .zone-panel.open { display: flex !important; position: absolute; top: 12px; right: 12px; width: 290px;
+  max-height: calc(100% - 24px); overflow: auto; z-index: 1000; box-shadow: 0 18px 40px rgba(0,0,0,0.55); border: 1px solid #7c2d12; }
+.zone-toggle { padding: 6px 12px; font-size: 13px; }
+.zone-toggle.on { background: #7c2d12; color: #fed7aa; }
+.zone-toggle b { color: #fdba74; }
+.zone-toggle .zone-alerts { color: #fecaca; font-weight: 800; }
+.zone-close { margin-left: auto; font-size: 12px; }
+
+/* 감시구역 현황 카드 (zone-status.js) — 성능 모니터를 2행으로 늘려 비행 상태 아래 칸을 채움 */
+.perf-card { grid-row: span 2; }
+.zone-status-card { min-width: 0; }
+.zs-empty { display: grid; gap: 6px; justify-items: start; padding: 6px 2px; }
+.zs-empty p { margin: 0; }
+.zs-zones { display: grid; gap: 8px; }
+.zs-zone { display: grid; grid-template-columns: 14px minmax(80px, 1.2fr) auto repeat(3, minmax(0, 1fr)); gap: 10px; align-items: center;
+  background: var(--panel); border-radius: 12px; padding: 10px 12px; cursor: pointer; border: 1px solid transparent; font-size: 13px; }
+.zs-zone:hover { border-color: #475569; }
+.zs-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 3px rgba(74,222,128,.15); }
+.zs-name { font-size: 15px; }
+.zs-state { font-weight: 800; color: var(--good); font-size: 12px; background: rgba(74,222,128,.12); border-radius: 999px; padding: 2px 10px; }
+.zs-cell { color: var(--text-2); white-space: nowrap; }
+.zs-cell em { font-style: normal; color: var(--muted); font-size: 12px; margin-right: 4px; }
+.zs-zone.alarm { border-color: #b91c1c; background: #3b0d0d; }
+.zs-zone.alarm .zs-dot { background: var(--critical); box-shadow: 0 0 0 4px rgba(248,113,113,.25); animation: zsblink 1s infinite; }
+.zs-zone.alarm .zs-state { color: #fecaca; background: #7f1d1d; }
+@keyframes zsblink { 50% { opacity: .35; } }
+.zs-h { margin: 16px 0 8px; font-size: 14px; justify-content: flex-start; gap: 10px; }
+.zs-timeline { padding: 4px 2px 0; }
+.zs-track { position: relative; height: 22px; background: #0b1220; border-radius: 999px; border: 1px solid #1e293b; }
+.zs-mark { position: absolute; top: 3px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; padding: 0; border: 2px solid #0f172a; cursor: pointer; }
+.zs-mark.person { background: var(--person); } .zs-mark.vehicle { background: var(--vehicle); }
+.zs-head { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #facc15; }
+.zs-axis { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; margin-top: 4px; }
+.zs-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; max-height: 330px; overflow: auto; }
+.zs-card { display: flex; gap: 10px; align-items: center; text-align: left; background: var(--panel); color: var(--text); border-radius: 12px; padding: 8px;
+  border: 1px solid transparent; font-weight: 400; cursor: pointer; }
+.zs-card:hover { border-color: #475569; opacity: 1 !important; }
+.zs-card.now { border-color: #b91c1c; }
+.zs-card img, .zs-noimg { width: 56px; height: 56px; border-radius: 8px; object-fit: cover; flex: none; background: #0b1220; }
+.zs-noimg { display: grid; place-items: center; font-weight: 900; color: var(--muted); }
+.zs-info { display: grid; gap: 3px; min-width: 0; font-size: 13px; }
+.zs-z { color: #fdba74; font-weight: 700; }
+.zs-live { color: #fecaca; background: #7f1d1d; border-radius: 999px; padding: 0 8px; font-size: 11px; font-weight: 800; }
+@media (max-width: 1100px) { .perf-card { grid-row: auto; } .zs-zone { grid-template-columns: 14px 1fr auto; } .zs-cell { grid-column: 2 / -1; } }
+
+/* 이탈 판정 (replay.js): 카메라에 보이는데 3초 이상 탐지 없음 */
+.obj-icon.left { opacity: .5; filter: grayscale(1); border-style: dashed; }
+.gone { color: #94a3b8; font-weight: 700; }
+
+/* 객체 수 변화 그래프 (count-chart.js) */
+.cc-seg { display: inline-flex; background: var(--panel); border-radius: 10px; padding: 3px; gap: 2px; }
+.cc-seg button { background: transparent; color: var(--text-2); padding: 5px 12px; font-size: 13px; border-radius: 8px; }
+.cc-seg button.on { background: #334155; color: var(--text); }
+.cc-top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 6px; font-size: 13px; color: var(--text-2); }
+.cc-lg i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.cc-lg i.person { background: var(--person); } .cc-lg i.vehicle { background: var(--vehicle); }
+.cc-sum { margin-left: auto; }
+.cc-sum b { color: var(--text); }
+.cc-chart { position: relative; height: 190px; }
+.cc-chart svg { display: block; width: 100%; height: 100%; }
+.cc-chart.seekable svg { cursor: pointer; }
+.cc-note { margin: 4px 0 0; }
+.report-fig { margin: 10px 0 14px; }
+.report-fig img { display: block; width: 100%; max-width: 860px; height: auto; border-radius: 12px; }
+
+/* 정찰 상황 일지 (events.js) + 정찰 범위 (coverage.js) */
+.coverage-toggle { padding: 6px 12px; font-size: 13px; }
+.coverage-toggle.on { background: #164e63; color: #a5f3fc; }
+.ev-card .actions { flex-wrap: wrap; }
+.ev-stats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+.ev-stats .metric:first-child strong { color: #67e8f9; }
+.ev-list { list-style: none; margin: 0; padding: 0; max-height: 380px; overflow: auto; display: grid; gap: 4px; }
+.ev { display: grid; grid-template-columns: 70px 22px 74px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px 10px;
+  background: var(--panel); border-radius: 10px; font-size: 13px; cursor: pointer; border: 1px solid transparent; }
+.ev:hover { border-color: #475569; }
+.ev-time { font-variant-numeric: tabular-nums; color: var(--text-2); }
+.ev-ic { text-align: center; }
+.ev-kind { font-size: 11px; font-weight: 800; color: var(--muted); }
+.ev-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ev-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+.ev-dot.person { background: var(--person); } .ev-dot.vehicle { background: var(--vehicle); }
+.ev-snap { width: 30px; height: 30px; border-radius: 6px; object-fit: cover; }
+.ev-alert { background: #3b0d0d; border-color: #7f1d1d; } .ev-alert .ev-kind { color: #fca5a5; }
+.ev-left .ev-text { color: #94a3b8; }
+.ev-peak .ev-kind { color: #fde68a; }
+.ev-flight .ev-kind, .ev-batt .ev-kind { color: #93c5fd; }
+.ev.warn { background: #422006; } .ev.warn .ev-kind { color: #fdba74; }
+.ev-empty { padding: 12px; }
+.ev-note { margin: 6px 0 0; }
+@media (max-width: 1100px) { .ev-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } .ev { grid-template-columns: 64px 18px minmax(0, 1fr) auto; } .ev-kind { display: none; } }
+
+/* 지도 드론 표시: 흰색 쿼드콥터 (가운데 검은 삼각형 = 기수 방향) */
+.drone-icon { width: 46px; height: 46px; background: none; border: none; border-radius: 0; animation: none; display: block; }
+.drone-icon .arrow { width: 46px; height: 46px; border: none; transition: transform .3s linear;
+  filter: drop-shadow(0 0 1.5px rgba(15,23,42,.95)) drop-shadow(0 1px 3px rgba(0,0,0,.7)); }
+.lg.drone-svg { display: inline-grid; place-items: center; width: 16px; height: 16px; background: #334155; border-radius: 4px; vertical-align: -3px; margin-right: 4px; }
+
+/* 리플레이 보고서 기준 시점 (features.js) */
+.rpt-cut { display: inline-flex; align-items: center; gap: 6px; background: var(--panel); border-radius: 10px; padding: 4px 8px; font-size: 13px; }
+.rpt-cut[hidden] { display: none; }
+.rpt-cut label { color: var(--muted); font-weight: 700; white-space: nowrap; }
+.rpt-cut select, .rpt-cut input { padding: 4px 8px; font-size: 13px; }
+.rpt-cut input { width: 70px; }

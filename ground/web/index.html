@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 정찰 드론 실시간 대시보드</title>
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
+  <link rel="stylesheet" href="styles.css?v=topedge" />
+  <link rel="stylesheet" href="flightlog.css" />
+  <link rel="stylesheet" href="lib.css?v=7" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>AI 정찰 드론 실시간 대시보드</h1>
+      <p>KoaFC 텔레메트리 · Raspberry Pi 4 YOLO 탐지 · 탐지 객체 위치추정</p>
+    </div>
+    <div class="pills">
+      <button class="lib-btn" id="libBtn" title="녹화 영상·비행 로그 넣기·재생·분석">📂 자료 보관함</button>
+      <div class="status-pill off" id="fcStatus">FC 대기</div>
+      <div class="status-pill off" id="piStatus">PI 대기</div>
+      <div class="status-pill off" id="connectionStatus">서버 연결 중</div>
+    </div>
+  </header>
+  <div class="banner" id="benchBanner" hidden>지상(벤치) 모드 — 가상 고도로 위치추정 중. 실제 좌표와 다를 수 있음</div>
+  <div class="toasts" id="toasts" aria-live="assertive"></div>
+
+  <main class="dashboard">
+    <!-- 영상 -->
+    <section class="card video-card">
+      <div class="card-header">
+        <h2>실시간 영상 / YOLO 탐지</h2>
+        <span id="fpsText">FPS -</span>
+      </div>
+      <div class="video-frame">
+        <img id="droneVideo" alt="드론 카메라 영상" />
+        <div class="video-empty" id="videoEmpty">영상 없음 — 파이 detector_node 실행 여부 확인</div>
+      </div>
+      <div class="count-row">
+        <div class="count-box"><span>현재 화면 사람</span><strong id="personCount">0</strong></div>
+        <div class="count-box"><span>현재 화면 차량</span><strong id="vehicleCount">0</strong></div>
+        <div class="count-box"><span>누적 객체 (사람 / 차량)</span><strong id="objTotal">0 / 0</strong></div>
+        <div class="count-box"><span>감시구역 경보</span><strong id="alertTotal">0</strong></div>
+      </div>
+    </section>
+
+    <!-- 지도 + ④ 감시구역 -->
+    <section class="card map-card">
+      <div class="card-header">
+        <h2>지도 — 드론 / 탐지 객체 / 감시구역</h2>
+        <div class="actions">
+          <button class="ghost zone-toggle" id="zoneToggle" type="button" title="지도에 감시구역을 그리고, 탐지 객체가 들어오면 경보">▱ 감시구역</button>
+          <label class="chk"><input type="checkbox" id="followDrone" checked /> 드론 따라가기</label>
+          <label class="chk" title="카메라에 3초 이상 보이는데 탐지되지 않은 객체(떠난 것으로 판단)를 지도에서 숨김"><input type="checkbox" id="hideLeft" checked /> 이탈 객체 숨김</label>
+          <input type="checkbox" id="showTruth" hidden />   <!-- 기준점 지도 표시: 화면에서 뺌 (정확도 검증 카드는 유지) -->
+        </div>
+      </div>
+      <div class="map-layout">
+        <div class="map-wrap">
+          <div id="map"></div>
+          <div class="map-hint" id="mapHint" hidden></div>
+          <div class="legend">
+            <span><i class="lg drone-svg"><svg viewBox="0 0 48 48" width="16" height="16" xmlns="http://www.w3.org/2000/svg"><g stroke="#fff" stroke-linecap="round"><line x1="12" y1="12" x2="36" y2="36" stroke-width="4"/><line x1="36" y1="12" x2="12" y2="36" stroke-width="4"/></g><g fill="rgba(255,255,255,0.28)" stroke="#fff" stroke-width="2"><circle cx="11" cy="11" r="8"/><circle cx="37" cy="11" r="8"/><circle cx="11" cy="37" r="8"/><circle cx="37" cy="37" r="8"/></g><g fill="#fff"><circle cx="11" cy="11" r="2"/><circle cx="37" cy="11" r="2"/><circle cx="11" cy="37" r="2"/><circle cx="37" cy="37" r="2"/></g><rect x="17" y="15" width="14" height="18" rx="5" fill="#fff"/><path d="M24 17.5l4 6h-8z" fill="#0f172a"/></svg></i>드론</span>
+            <span><i class="lg person">P</i>사람</span>
+            <span><i class="lg vehicle">V</i>차량</span>
+            <span><i class="lg ring"></i>추정 오차 반경</span>
+            <span><i class="lg zone"></i>감시구역</span>
+          </div>
+        </div>
+        <aside class="zone-panel">
+          <h3>감시구역</h3>
+          <div class="zone-draw" id="zoneIdle">
+            <input id="zoneName" placeholder="구역 이름 (예: 정문)" maxlength="20" />
+            <button id="zoneStart">지도에 구역 그리기</button>
+          </div>
+          <div class="zone-draw" id="zoneDrawing" hidden>
+            <p class="muted small">지도를 클릭해 꼭짓점을 찍으세요 (<b id="zoneVtx">0</b>개)</p>
+            <div class="row">
+              <button id="zoneFinish">완료</button>
+              <button id="zoneUndo" class="ghost">되돌리기</button>
+              <button id="zoneCancel" class="ghost">취소</button>
+            </div>
+          </div>
+          <ul class="zone-list" id="zoneList"></ul>
+
+          <h3>경보 기록 <label class="chk small"><input type="checkbox" id="alertSound" checked /> 경보음</label></h3>
+          <ul class="alert-list" id="alertList"><li class="muted small">경보 없음</li></ul>
+        </aside>
+      </div>
+    </section>
+
+    <!-- 비행 상태 (영상 아래) -->
+    <section class="card flight-card">
+      <div class="card-header">
+        <h2>비행 상태</h2>
+        <span id="flightMode">-</span>
+      </div>
+      <div class="telemetry-grid">
+        <div class="metric"><span>상대고도</span><strong id="altitude">-</strong></div>
+        <div class="metric"><span>지면속도</span><strong id="speed">-</strong></div>
+        <div class="metric"><span>배터리</span><strong id="battery">-</strong></div>
+        <div class="metric"><span>GPS</span><strong id="gps">-</strong></div>
+        <div class="metric"><span>위도</span><strong id="lat">-</strong></div>
+        <div class="metric"><span>경도</span><strong id="lon">-</strong></div>
+        <div class="metric"><span>기수 방위</span><strong id="heading">-</strong></div>
+        <div class="metric"><span>롤 / 피치</span><strong id="attitude">-</strong></div>
+      </div>
+    </section>
+    <!-- ③ 시스템 성능 (지도 아래) -->
+    <section class="card perf-card">
+      <div class="card-header">
+        <h2>시스템 성능 모니터</h2>
+        <span class="sub">최근 3분</span>
+      </div>
+      <div class="perf-status" id="perfStatus"></div>
+      <div class="spark-grid">
+        <div class="spark" id="sparkFps"></div>
+        <div class="spark" id="sparkE2e"></div>
+        <div class="spark" id="sparkTemp"></div>
+        <div class="spark" id="sparkCpu"></div>
+      </div>
+    </section>
+
+    <!-- 감시구역 현황 (비행 상태 아래) — zone-status.js -->
+    <section class="card zone-status-card">
+      <div class="card-header">
+        <h2>감시구역 현황</h2>
+        <div class="actions"><span class="sub" id="zsMeta">구역 없음</span><button class="ghost" id="zsManage" type="button">구역 관리</button></div>
+      </div>
+      <div class="zs-empty" id="zsEmpty">
+        <p>아직 감시구역이 없습니다.</p>
+        <p class="muted small">지도에 출입통제 구역 등을 그려 두면, 탐지된 사람·차량이 들어올 때 여기서 상태와 침입 객체를 볼 수 있습니다.</p>
+        <button id="zsManage2" type="button">▱ 구역 그리기</button>
+      </div>
+      <div id="zsBody" hidden>
+        <div class="zs-zones" id="zsZones"></div>
+        <h3 class="zs-h">침입 타임라인 <span class="muted small">점을 누르면 그 객체로 이동 (리플레이는 그 시각으로)</span></h3>
+        <div class="zs-timeline" id="zsTimeline" hidden></div>
+        <h3 class="zs-h">침입 객체</h3>
+        <div class="zs-cards" id="zsCards"></div>
+      </div>
+    </section>
+
+    <!-- 객체 수 변화 그래프 — count-chart.js -->
+    <section class="card wide count-card">
+      <div class="card-header">
+        <h2>객체 수 변화</h2>
+        <div class="actions">
+          <div class="cc-seg" role="tablist">
+            <button type="button" class="on" data-mode="now">화면 속 탐지 수</button>
+            <button type="button" data-mode="cum">누적 식별 객체</button>
+          </div>
+        </div>
+      </div>
+      <div class="cc-top">
+        <span class="cc-lg"><i class="person"></i>사람</span><span class="cc-lg"><i class="vehicle"></i>차량</span>
+        <span class="cc-sum" id="ccSum"></span>
+      </div>
+      <div class="cc-chart" id="ccChart"><p class="muted">데이터를 기다리는 중…</p></div>
+      <p class="muted small cc-note" id="ccNote"></p>
+    </section>
+
+    <!-- 정찰 상황 일지 + 정찰 범위 요약 — events.js / coverage.js -->
+    <section class="card wide ev-card">
+      <div class="card-header">
+        <h2>정찰 상황 일지</h2>
+        <div class="actions">
+          <span class="sub" id="evMeta"></span>
+          <div class="cc-seg" id="evFilter">
+            <button type="button" class="on" data-f="all">전체</button>
+            <button type="button" data-f="alert">구역 침입</button>
+            <button type="button" data-f="obj">식별</button>
+            <button type="button" data-f="left">이탈</button>
+            <button type="button" data-f="peak">최대 탐지</button>
+            <button type="button" data-f="flight">기체</button>
+          </div>
+        </div>
+      </div>
+      <div class="ev-stats" id="evStats"></div>
+      <ul class="ev-list" id="evList"></ul>
+      <p class="muted small ev-note">줄을 누르면 지도에서 그 객체로 이동합니다 (리플레이는 영상도 그 시각으로). 최신 사건이 맨 위.</p>
+    </section>
+
+    <!-- 객체 목록 + ② 스냅샷 -->
+    <section class="card wide">
+      <div class="card-header">
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-tab="tabList" role="tab">탐지 객체 목록</button>
+          <button class="tab" data-tab="tabGallery" role="tab">스냅샷 갤러리</button>
+        </div>
+        <div class="actions">
+          <span id="lastDetectionTime" class="accent">최근 탐지: --:--:--</span>
+          <button id="exportBtn">CSV 저장</button>
+          <button id="clearObjBtn" class="ghost">목록 초기화</button>
+        </div>
+      </div>
+      <div id="tabList" class="tab-body">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th></th><th>ID</th><th>종류</th><th>신뢰도</th><th>위도</th><th>경도</th><th>오차(m)</th><th>탐지 횟수</th><th>최초</th><th>최근</th><th>구역</th><th>상태</th></tr>
+            </thead>
+            <tbody id="objectTable"><tr><td colspan="12" class="muted">아직 탐지된 객체가 없습니다.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="tabGallery" class="tab-body" hidden>
+        <div class="gallery" id="gallery"><p class="muted">스냅샷이 없습니다.</p></div>
+      </div>
+    </section>
+
+    <!-- ⑥ 비행 기록: 비행 시작~종료 구간의 기체 로그 + 객체인식 목록 (비행 종료 후 표시) -->
+    <!-- 비행 기록 — 교수님과 상의해 대시보드에서 제외 (10/27). 서버 쪽 자동 기록은 그대로 data/flights 에 남음 -->
+    <section class="card wide" id="flightCard" hidden style="display:none">
+      <div class="card-header">
+        <h2>비행 기록 — 기체 로그 · 객체인식 목록</h2>
+        <div class="actions">
+          <span class="fl-badge" id="flBadge">대기</span>
+          <button id="flStart">비행 시작</button>
+          <button id="flStop" class="ghost" disabled>비행 종료</button>
+          <select id="flSelect" aria-label="지난 비행 선택"><option value="">저장된 비행 없음</option></select>
+          <button id="flCsv" class="ghost" disabled>CSV 저장</button>
+          <button id="flJson" class="ghost" disabled>JSON</button>
+        </div>
+      </div>
+      <div class="fl-live" id="flLive" hidden></div>
+      <div class="fl-empty muted" id="flEmpty">아직 끝난 비행이 없습니다. 기체를 ARM하면 자동으로 기록이 시작되고, DISARM하면 이번 비행의 기체 로그와 객체인식 목록이 여기에 표시됩니다.</div>
+      <div id="flBody" hidden>
+        <div class="fl-tiles" id="flTiles"></div>
+        <p class="muted small fl-meta" id="flMeta"></p>
+        <div class="fl-tabs">
+          <button class="fl-tab active" data-fl="flTel" id="flTelTabBtn">기체 로그</button>
+          <button class="fl-tab" data-fl="flObj" id="flObjTabBtn">객체인식 목록</button>
+          <button class="fl-tab" data-fl="flDet" id="flDetTabBtn">탐지 이벤트</button>
+        </div>
+        <div id="flTel" class="table-wrap">
+          <table>
+            <thead><tr><th>시각</th><th>경과</th><th>모드</th><th>고도(m)</th><th>속도(m/s)</th><th>배터리</th><th>전압(V)</th><th>GPS</th><th>위도</th><th>경도</th><th>방위</th><th>롤/피치</th></tr></thead>
+            <tbody id="flTelBody"></tbody>
+          </table>
+        </div>
+        <div id="flObj" class="table-wrap" hidden>
+          <table>
+            <thead><tr><th></th><th>ID</th><th>종류</th><th>최고 신뢰도</th><th>위도</th><th>경도</th><th>오차(m)</th><th>탐지 횟수</th><th>최초</th><th>최근</th></tr></thead>
+            <tbody id="flObjBody"></tbody>
+          </table>
+        </div>
+        <div id="flDet" hidden>
+          <p class="muted small" id="flDetNote"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>시각</th><th>경과</th><th>객체 ID</th><th>종류</th><th>신뢰도</th><th>위도</th><th>경도</th><th>오차(m)</th><th>드론 고도(m)</th><th>추정 방식</th></tr></thead>
+              <tbody id="flDetBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ① 위치추정 정확도 검증 — 교수님과 상의해 대시보드에서 제외 (10/27). 스크립트 참조 때문에 숨김만 함 -->
+    <section class="card wide" id="accCard" hidden style="display:none">
+      <div class="card-header">
+        <h2>위치추정 정확도 검증</h2>
+        <div class="actions">
+          <span class="sub" id="accMeta">기준점 0개</span>
+          <button id="accExport">CSV 저장</button>
+        </div>
+      </div>
+      <div class="acc-layout">
+        <form class="acc-form" id="truthForm" autocomplete="off">
+          <h3>기준점(실제 위치) 추가</h3>
+          <label>이름<input id="tLabel" placeholder="예: 콘 A, 차량 1" maxlength="30" /></label>
+          <label>종류
+            <select id="tCls"><option value="">자동</option><option value="person">사람</option><option value="vehicle">차량</option></select>
+          </label>
+          <label>매칭 객체
+            <select id="tObj"><option value="">자동 (가장 가까운 객체)</option></select>
+          </label>
+          <div class="row2">
+            <label>위도<input id="tLat" inputmode="decimal" placeholder="37.868123" /></label>
+            <label>경도<input id="tLon" inputmode="decimal" placeholder="127.744512" /></label>
+          </div>
+          <div class="row">
+            <button type="button" id="tPick" class="ghost">지도에서 찍기</button>
+            <button type="button" id="tDrone" class="ghost">드론 현재 위치</button>
+          </div>
+          <button type="submit">기준점 추가</button>
+          <p class="muted small">현장 방법: 표적 위치에서 폰 GPS 좌표를 적거나, 드론을 표적 위에 두고 "드론 현재 위치"를 누른 뒤 원위치.</p>
+          <p class="err small" id="tErr"></p>
+        </form>
+        <div class="acc-result">
+          <div class="acc-tiles" id="accTiles"></div>
+          <div class="acc-chart" id="accChart"></div>
+          <div class="table-wrap short">
+            <table>
+              <thead><tr><th>기준점</th><th>매칭</th><th>추정 오차(m)</th><th>편차 북/동(m)</th><th>개별 탐지 평균</th><th>CEP90</th><th>표본</th><th></th></tr></thead>
+              <tbody id="accTable"><tr><td colspan="8" class="muted">기준점을 추가하면 추정 좌표와의 오차가 계산됩니다.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ⑤ AI 정찰 보고서 -->
+    <section class="card wide">
+      <div class="card-header">
+        <h2>AI 정찰 결과 보고서</h2>
+        <div class="actions">
+          <span class="badge" id="reportSource" hidden></span>
+          <span class="rpt-cut" id="rptCutBox" hidden title="리플레이 보고서를 영상의 어느 시점까지 결과로 만들지 고릅니다">
+            <label for="rptCut">기준 시점</label>
+            <select id="rptCut">
+              <option value="now" selected>현재 재생 위치</option>
+              <option value="at">직접 입력 (분:초)</option>
+              <option value="end">영상 끝까지</option>
+            </select>
+            <input id="rptCutAt" placeholder="3:15" maxlength="8" hidden />
+          </span>
+          <button id="reportBtn">보고서 생성</button>
+          <button id="reportCopy" class="ghost" disabled>복사</button>
+          <button id="reportSave" class="ghost" disabled>.md 저장</button>
+        </div>
+      </div>
+      <p class="muted small" id="reportNote">탐지 객체·스냅샷·감시구역 경보·정확도·성능 기록을 종합해 정찰 보고서를 작성합니다.</p>
+      <div class="report" id="reportBody"><p class="muted">아직 생성된 보고서가 없습니다.</p></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>KoaFC 자동비행 드론 + Raspberry Pi 4 영상처리 + YOLO 객체탐지 + 위치추정 — 예비 시연 v2</p>
+  </footer>
+
+
+  <!-- 자료 보관함: 녹화 영상·비행 로그를 넣어 두고 바로 재생·분석 (lib.js) -->
+  <div class="lib-overlay" id="libPanel" hidden>
+    <div class="lib-panel" role="dialog" aria-label="자료 보관함">
+      <div class="lib-top">
+        <h2>📂 자료 보관함</h2>
+        <button class="ghost" id="libClose" aria-label="닫기">닫기 ✕</button>
+      </div>
+      <p class="lib-now" id="libNow"></p>
+      <div class="lib-drop" id="libDrop">
+        <strong>파일을 여기로 끌어다 놓으세요</strong>
+        <span>또는 <button class="link" id="libPick">파일 선택</button> · <button class="link" id="libOpenFolder">보관함 폴더 열기</button> (폴더에 복사해도 자동으로 정리됩니다)</span>
+        <span class="muted small">K380 녹화: <code>rec_….mp4</code> + 같은 이름 <code>.csv</code> 함께 · 매빅: SD카드 원본 <code>DJI_….MP4</code> · 비행 로그: <code>….bin</code></span>
+        <span class="muted small">폴더: <code id="libFolder"></code></span>
+        <input type="file" id="libFile" multiple hidden accept=".mp4,.MP4,.mov,.MOV,.csv,.bin" />
+      </div>
+      <div class="lib-up" id="libUp" hidden></div>
+      <div class="lib-deps" id="libDeps" hidden></div>
+      <div class="lib-pending" id="libPending" hidden></div>
+      <div class="lib-list" id="libList"><p class="muted">불러오는 중…</p></div>
+      <p class="muted small">새 자료는 넣는 즉시 자동으로 분석됩니다 (영상은 길이에 따라 수 분). 결과는 보관함 폴더에 저장되어 다음에 바로 재생됩니다.</p>
+    </div>
+  </div>
+  <div class="tooltip" id="tooltip" hidden></div>
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <script src="charts.js?v=2"></script>
+  <script src="app.js?v=5"></script>
+  <script src="features.js?v=cut1"></script>
+  <script src="flightlog.js"></script>
+  <script src="recorder.js"></script>
+  <script src="layout.js?v=2"></script>
+  <script src="replay.js?v=15"></script>
+  <script src="lib.js?v=2"></script>
+  <script src="perf-gate.js?v=2"></script>
+  <script src="zone-ui.js?v=1"></script>
+  <script src="zone-status.js?v=1"></script>
+  <script src="trail.js?v=2"></script>
+  <script src="count-chart.js?v=2"></script>
+  <script src="coverage.js?v=2"></script>
+  <script src="events.js?v=2"></script>
+  <script>
+    // 레이아웃 변경으로 지도 칸 크기가 바뀌면 Leaflet 타일을 다시 맞춤
+    try { new ResizeObserver(() => App.map && App.map.invalidateSize()).observe(document.getElementById("map")); } catch (e) {}
+  </script>
+</body>
+</html>

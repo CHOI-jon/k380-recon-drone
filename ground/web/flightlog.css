@@ -1,0 +1,20 @@
+/* ⑥ 비행 기록 카드 — styles.css 수정 없이 별도 파일 */
+.fl-badge { padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; background: #334155; color: var(--text-2); }
+.fl-badge.rec { background: #7f1d1d; color: #fecaca; animation: fl-blink 1.6s ease-in-out infinite; }
+@keyframes fl-blink { 50% { opacity: 0.65; } }
+.fl-live { padding: 14px 16px; margin-bottom: 14px; border-radius: 12px; background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.3); line-height: 1.6; }
+.fl-empty { padding: 26px 16px; text-align: center; border-radius: 12px; background: var(--panel); }
+.fl-tiles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-bottom: 8px; }
+.fl-tiles strong { font-size: 19px; }
+.fl-meta { margin: 6px 0 12px; }
+.fl-tabs { display: inline-flex; gap: 4px; background: var(--panel); border-radius: 10px; padding: 4px; margin-bottom: 10px; flex-wrap: wrap; }
+.fl-tab { background: transparent; color: var(--muted); padding: 6px 12px; border-radius: 7px; }
+.fl-tab.active { background: #334155; color: var(--text); }
+#flightCard select { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; font: inherit; max-width: 320px; }
+.fl-cls { padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.fl-cls.person { background: rgba(244,63,94,0.18); color: #fda4af; }
+.fl-cls.vehicle { background: rgba(56,189,248,0.18); color: #7dd3fc; }
+.fl-thumb { width: 36px; height: 36px; object-fit: cover; border-radius: 6px; display: block; }
+#flightCard td { font-variant-numeric: tabular-nums; }
+@media (max-width: 1200px) { .fl-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 700px)  { .fl-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

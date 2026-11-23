@@ -1,0 +1,28 @@
+.lg-main { display: grid; gap: 20px; padding: 24px 32px; }
+.lg-back { color: #0f172a; background: #facc15; border-radius: 999px; padding: 8px 16px; font-weight: 800; text-decoration: none; font-size: 13px; }
+.lg-adv { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.lg-adv li { padding: 10px 12px 10px 38px; border-radius: 12px; background: var(--panel); position: relative; line-height: 1.5; }
+.lg-adv li::before { position: absolute; left: 12px; top: 10px; font-weight: 900; }
+.lg-adv li.good::before { content: "✓"; color: var(--good); }
+.lg-adv li.ok::before { content: "✓"; color: #a3e635; }
+.lg-adv li.warn::before { content: "!"; color: var(--warning); }
+.lg-adv li.bad::before { content: "✕"; color: var(--critical); }
+.lg-adv li.info::before { content: "i"; color: var(--accent); }
+.lg-adv li.warn { box-shadow: inset 3px 0 0 var(--warning); }
+.lg-adv li.bad { box-shadow: inset 3px 0 0 var(--critical); }
+.lg-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.lg-table th, .lg-table td { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+.lg-table th { color: var(--muted); font-weight: 700; font-size: 12px; }
+.lg-table td.wrap { white-space: normal; }
+.v-good { color: var(--good); } .v-ok { color: #d9f99d; } .v-bad { color: var(--critical); font-weight: 800; }
+.lg-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: 20px; }
+.lg-chart { position: relative; height: 220px; }
+.lg-chart canvas { width: 100%; height: 100%; display: block; }
+.lg-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--text-2); }
+.lg-legend i { display: inline-block; width: 12px; height: 3px; border-radius: 2px; vertical-align: 3px; margin-right: 4px; }
+.lg-params { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px 14px; font-size: 13px; }
+.lg-params span { color: var(--muted); }
+.lg-tip { position: fixed; pointer-events: none; background: rgba(15,23,42,.95); border: 1px solid #334155; border-radius: 8px; padding: 6px 9px;
+  font-size: 12px; color: var(--text); z-index: 50; white-space: nowrap; }
+.table-wrap.short { max-height: 320px; overflow: auto; }
+@media (max-width: 640px) { .lg-main { padding: 16px; } .lg-charts { grid-template-columns: 1fr; } }
