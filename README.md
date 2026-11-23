@@ -39,6 +39,18 @@
 | 모델 | YOLOv8n — COCO 사전학습 → VisDrone 추가학습 → NCNN 변환 (416 / 640) |
 | 지상국 | Python (aiohttp, pymavlink), Leaflet 지도 대시보드 |
 
+## 기체 사진
+
+| 완성된 K380 AI 정찰 드론 | 자동비행 시험 |
+|---|---|
+| ![K380](docs/images/k380_complete.jpg) | ![flight](docs/images/k380_flight_air.jpg) |
+| **이륙 (ArduPilot AUTO 미션)** | **기체 조립** |
+| ![takeoff](docs/images/k380_flight_ground.jpg) | ![assembly](docs/images/k380_assembly.jpg) |
+| **카메라 모듈 3 전용 마운트** | **방진 카메라 마운트 (3D 프린팅·카본)** |
+| ![camera](docs/images/camera_mount.jpg) | ![vibration](docs/images/vibration_mount.jpg) |
+| **비행제어기(ArduPilot) 배선** | **벤치 통합 시험 — 비행제어기·파이·지상국** |
+| ![fc](docs/images/fc_wiring.jpg) | ![bench](docs/images/bench_test.jpg) |
+
 ## 폴더 구조
 
 ```
@@ -46,7 +58,7 @@ onboard/   라즈베리파이 탐지 노드 설정·자동 실행 스크립트
 ground/    지상국 서버, 위치추정, 리플레이 분석, 보고서
 ground/web 웹 대시보드 (HTML/JS/CSS, Leaflet)
 models/    VisDrone 학습 YOLOv8n NCNN 모델 (best416_ncnn, best640_ncnn)
-docs/      시연 GIF 등
+docs/      시연 GIF, 기체 사진(docs/images)
 ```
 
 ## 빠른 시작 — 하드웨어 없이 체험 (Windows/macOS/Linux)
